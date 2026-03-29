@@ -1,4 +1,4 @@
-# kv-ring6-k8s
+# README
 
 6-Node Ring KV store.
 
@@ -45,7 +45,7 @@ Failover:    Router heartbeat (300ms tick, 900ms timeout)
 ## Running
 
 ```bash
-cd kv-ring6-k8s
+cd hash-ring
 
 # Run all
 ./run.sh
