@@ -10,14 +10,14 @@
 Client → Router (least-conn, heartbeat, failover)
               ↓
     ┌─────────────────────────────┐
-    │   12 slots, 6 nodes               │
-    │                                   │
-    │  kv-0: PRI s0,s1                  │
-    │  kv-1: PRI s2,s3  SEC s0,s1       │
-    │  kv-2: PRI s4,s5  SEC s2,s3       │
-    │  kv-3: PRI s6,s7  SEC s4,s5       │
-    │  kv-4: PRI s8,s9  SEC s6,s7       │
-    │  kv-5: PRI s10,11 SEC s8,s9       │
+    │   12 slots, 6 nodes         │
+    │                             │
+    │  kv-0: PRI s0,s1            │
+    │  kv-1: PRI s2,s3  SEC s0,s1 │
+    │  kv-2: PRI s4,s5  SEC s2,s3 │
+    │  kv-3: PRI s6,s7  SEC s4,s5 │
+    │  kv-4: PRI s8,s9  SEC s6,s7 │
+    │  kv-5: PRI s10,11 SEC s8,s9 │
     └─────────────────────────────┘
 
     
