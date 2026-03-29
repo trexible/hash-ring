@@ -64,7 +64,7 @@ cd kv-ring6-k8s
 
 ## Known Issues (as discussed)
 
-1. **Scaling**: adding a 7th node reshuffles all slot boundaries — same problem as before
-2. **Router SPOF**: single router pod, needs active-passive for HA
+1. **Scaling**: adding a 7th node reshuffles all slot boundaries
+2. **Router SPOF**: single router pod, needs better roouting for HA
 3. **WAL lag**: secondary may be stale within the 100ms batch window
 4. **Degraded mode**: when a node fails, its source node loses its replica with no auto-repair
