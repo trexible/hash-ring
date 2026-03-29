@@ -1,0 +1,109 @@
+# ════════════════════════════════════════════════════════════════
+#  6-Node Ring KV Store — StatefulSet
+#
+#  Topology (12 slots, 2 primary per node):
+#    kv-0  primary s0,s1    secondary s10,s11  (from kv-5)
+#    kv-1  primary s2,s3    secondary s0,s1    (from kv-0)
+#    kv-2  primary s4,s5    secondary s2,s3    (from kv-1)
+#    kv-3  primary s6,s7    secondary s4,s5    (from kv-2)
+#    kv-4  primary s8,s9    secondary s6,s7    (from kv-3)
+#    kv-5  primary s10,s11  secondary s8,s9    (from kv-4)
+#
+#  DNS pattern (headless service):
+#    kv-{i}.kv-headless.default.svc.cluster.local
+#
+#  Why StatefulSet over Deployment:
+#    - Stable network identity: kv-0..kv-5 DNS names are permanent
+#    - Ordered startup: nodes come up 0,1,2... so buddy is always
+#      available by the time the next node starts
+#    - Pods restart with the same name → router doesn't need to
+#      re-discover topology after a pod restart
+# ════════════════════════════════════════════════════════════════
+
+# ── Headless service (gives each pod stable DNS) ─────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: kv-headless
+spec:
+  clusterIP: None           # headless — no VIP, pure DNS A records
+  selector:
+    app: kv-ring
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+# ── StatefulSet ───────────────────────────────────────────────
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kv
+spec:
+  serviceName: kv-headless
+  replicas: 6
+  selector:
+    matchLabels:
+      app: kv-ring
+  template:
+    metadata:
+      labels:
+        app: kv-ring
+    spec:
+      # Give pods enough time to start (WAL threads, seed preload)
+      terminationGracePeriodSeconds: 10
+
+      containers:
+        - name: kv
+          image: kv-node:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+
+          env:
+            # K8s injects the pod name — server.py parses the trailing digit
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+
+            - name: TOTAL_NODES
+              value: "6"
+
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+
+            - name: WAL_FLUSH_MS
+              value: "100"
+
+            # kv-0 is the designated seed — preloads KEY_SPACE keys
+            # across its own primary slots on boot
+            - name: IS_SEED
+              value: "false"     # overridden per-pod via patch in run.sh
+
+            - name: KEY_SPACE
+              value: "10000"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 2
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "400m"
